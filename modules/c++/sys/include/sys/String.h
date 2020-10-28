@@ -1,10 +1,10 @@
 /* =========================================================================
- * This file is part of re-c++
+ * This file is part of sys-c++
  * =========================================================================
  *
- * (C) Copyright 2004 - 2016, MDA Information Systems LLC
+ * (C) Copyright 2004 - 2014, MDA Information Systems LLC
  *
- * re-c++ is free software; you can redistribute it and/or modify
+ * sys-c++ is free software; you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published by
  * the Free Software Foundation; either version 3 of the License, or
  * (at your option) any later version.
@@ -20,21 +20,21 @@
  *
  */
 
-#include <re/Regex.h>
+#pragma once
 
-namespace re
+#include <string>
+
+#if !defined(CODA_OSS_sys_u8string_DEFINED_)
+#define CODA_OSS_sys_u8string_DEFINED_ 1
+namespace sys
 {
-std::string Regex::escape(const std::string& str)
-{
-    std::string r;
-    for (size_t ii = 0; ii < str.length(); ii++)
-    {
-        if (!isalpha(str[ii]) && !isspace(str[ii]))
-        {
-            r += '\\';
-        }
-        r += str[ii];
-    }
-    return r;
+    // Char8_T for UTF-8 characters
+    #if __cplusplus >= 202002L  // C++20
+    using Char8_T = char8_t;
+    using u8string = std::u8string;
+    #else
+    enum Char8_T : unsigned char { }; // https://en.cppreference.com/w/cpp/language/types
+    using u8string = std::basic_string<Char8_T>; // https://en.cppreference.com/w/cpp/string
+    #endif  // __cplusplus
 }
-}
+#endif  // CODA_OSS_sys_u8string_DEFINED_

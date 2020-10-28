@@ -3,14 +3,14 @@ from build import CPPOptionsContext, enableWafUnitTests
 from waflib import Scripting, Options, Context
 
 VERSION = '3.0-dev'
-APPNAME = 'CODA-OSS'
+APPNAME = 'CODA-OSS-LITE'
 Context.APPNAME = APPNAME
 top  = '.'
 out  = 'target'
 
 DIRS = 'modules'
 
-TOOLS = 'build pythontool swig'
+TOOLS = 'build'
 
 def options(opt):
     opt.load(TOOLS, tooldir='./build/')
@@ -18,7 +18,6 @@ def options(opt):
     opt.recurse(DIRS)
 
 def configure(conf):
-    conf.options.swigver = '3.0.12'
     conf.load(TOOLS, tooldir='./build/')
     conf.recurse(DIRS)
 
