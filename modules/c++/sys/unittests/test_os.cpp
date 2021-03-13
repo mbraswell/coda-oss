@@ -154,6 +154,49 @@ TEST_CASE(testEnvVariables)
     TEST_ASSERT_FALSE(os.isEnvSet(testvar));
 }
 
+TEST_CASE(testSplitEnv)
+{
+    sys::OS os;
+
+    // PATH is usually set to multiple directories on both Windows and *nix
+    const std::string pathEnvVar = "PATH";
+    std::vector<std::string> paths;
+    bool result = os.splitEnv(pathEnvVar, paths);
+    TEST_ASSERT_TRUE(result);
+    TEST_ASSERT_GREATER(paths.size(), 0);
+    for (const auto& path : paths)
+    {
+        TEST_ASSERT_TRUE(sys::Filesystem::exists(path));
+    }
+    
+    // create an environemnt variable with a known bogus path
+    const auto bogusValue =  paths[0] + sys::Path::separator() + "this does not exist";
+    paths.clear();
+    const std::string bogusEnvVar = "CODA_OSS_TEST_PATH";
+    std::string value;
+    TEST_ASSERT_FALSE(os.getEnvIfSet(bogusEnvVar, value));
+    os.setEnv(bogusEnvVar, bogusValue, false /*overwrite*/);
+    result = os.splitEnv(bogusEnvVar, paths);
+    TEST_ASSERT_TRUE(result);
+    TEST_ASSERT_EQ(paths.size(), 1);
+
+    // PATHs are directories, not files
+    paths.clear();
+    result = os.splitEnv(pathEnvVar, paths, sys::Filesystem::FileType::Directory);
+    TEST_ASSERT_TRUE(result);
+    TEST_ASSERT_GREATER(paths.size(), 0);
+    paths.clear();
+    result = os.splitEnv(pathEnvVar, paths, sys::Filesystem::FileType::Regular);
+    TEST_ASSERT_TRUE(result);
+    TEST_ASSERT_TRUE(paths.empty());
+
+    const std::string notFoundEnvVar = "CODA_OSS_SOME_VAR_THAT_WE_KNOW_WONT_BE_SET";
+    paths.clear();
+    result = os.splitEnv(notFoundEnvVar, paths);
+    TEST_ASSERT_FALSE(result);
+    TEST_ASSERT_TRUE(paths.empty());
+}
+
 template <typename TPath>
 static void testFsExtension_(const std::string& testName)
 {
@@ -242,6 +285,9 @@ TEST_CASE(testBacktrace)
     std::vector<std::string> frames;
     const auto result = h(supported, frames);
     TEST_ASSERT_TRUE(!result.empty());
+    const auto failed_pos = result.find(" failed.");
+    TEST_ASSERT_EQ(failed_pos, std::string::npos);
+
 
     size_t frames_size = 0;
     auto version_sys_backtrace_ = version::sys::backtrace; // "Conditional expression is constant"
@@ -251,10 +297,10 @@ TEST_CASE(testBacktrace)
 
         #if _WIN32
         constexpr auto frames_size_RELEASE = 2;
-        constexpr auto frames_size_DEBUG = 13;
+        constexpr auto frames_size_DEBUG = 14;
         #elif defined(__GNUC__)
-        constexpr auto frames_size_RELEASE = 5;
-        constexpr auto frames_size_DEBUG = 9;
+        constexpr auto frames_size_RELEASE = 6;
+        constexpr auto frames_size_DEBUG = 10;
         #else
         #error "CODA_OSS_sys_Backtrace inconsistency."
         #endif
@@ -284,9 +330,11 @@ int main(int, char**)
     TEST_CHECK(testRecursiveRemove);
     TEST_CHECK(testForcefulMove);
     TEST_CHECK(testEnvVariables);
+    TEST_CHECK(testSplitEnv);
     TEST_CHECK(testFsExtension);
     TEST_CHECK(testFsOutput);
     TEST_CHECK(testBacktrace);
+
     return 0;
 }
 
