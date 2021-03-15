@@ -328,17 +328,18 @@ static void clean_slashes(std::string& path, bool isAbsolute)
     // Directories will consistently have a trailing '/', files won't
     while (str::endsWith(path, Path::delimiter()))
     {
-      path = path.substr(0, path.length() - 1);
+        path = path.substr(0, path.length() - 1);
     }
-    if (!isAbsolute && str::startsWith(path, Path::delimiter()))
+
+    // get rid of multiple "//"s
+    while (str::startsWith(path, Path::delimiter()))
     {
-        path = path.substr(1);
+	path = path.substr(1);
     }
-    // std::filesystem has (some?) support for UNC paths, but not this code
-    #if _WIN32
-    if (str::startsWith(path, "\\"))
+    #ifndef _WIN32 // std::filesystem has (some?) support for UNC paths, but not this code
+    if (isAbsolute)
     {
-        path = path.substr(1);
+        path = Path::delimiter() + path;
     }
     #endif
 
@@ -353,8 +354,8 @@ static void clean_slashes(std::string& path, bool isAbsolute)
     else if (fs::is_regular_file(path))
     {
       while (str::endsWith(path, Path::delimiter()))
-      {
-	path = path.substr(0, path.length() - 1);
+        {
+            path = path.substr(0, path.length() - 1);
       }
     }
 
@@ -362,12 +363,12 @@ static void clean_slashes(std::string& path, bool isAbsolute)
 }
 std::string Path::merge(const std::vector<std::string>& components, bool isAbsolute)
 {
-    fs::path result(isAbsolute ? "/" : "");
+    std::string retval = isAbsolute ? delimiter() : "";
     for (const auto& component : components)
     {
-        result /= component;
+        retval += component + delimiter();
     }
-    auto retval = result.string();
+
     clean_slashes(retval, isAbsolute);
     return retval;
 }
