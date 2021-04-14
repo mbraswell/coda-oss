@@ -1,3 +1,8 @@
+if (MSVC)
+    add_compile_options(/wd4127) # conditional expression is constant
+    add_compile_options(/wd4100) # '...' unreferenced formal parameter'
+endif()
+
 add_subdirectory("boost")
 #add_subdirectory("curl") # this is handled in coda_find_system_dependencies
 #add_subdirectory("numpy") # this is handled in coda_find_system_dependencies
