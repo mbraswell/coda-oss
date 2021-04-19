@@ -3,7 +3,7 @@ name: build_unittest
 on: [push]
 
 jobs:
-  build-windows-cmake:
+  build-windows-cmake-default:
     name: Windows
     runs-on: [windows-latest]
 
@@ -33,7 +33,7 @@ jobs:
         ctest -C Release
 
 
-  build-linux-cmake:
+  build-linux-cmake-default:
     name: Linux
     runs-on: [ubuntu-latest]
 
@@ -62,6 +62,69 @@ jobs:
       run: |
         cd target
         ctest
+
+
+  build-windows-cmake-ninja:
+    name: Windows
+    runs-on: [windows-latest]
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: '3.7'
+    - name: configure
+      run: |
+        ls env:
+        mkdir target
+        cd target
+        cmake .. -G Ninja -DCMAKE_INSTALL_PREFIX=installWindows-Github -DPYTHON_VERSION="3.7"
+    - name: build
+      run: |
+        cd target
+        cmake --build . --config Release -j
+    - name: install
+      run: |
+        cd target
+        cmake --build . --config Release --target install
+    - name: test
+      run: |
+        cd target
+        ctest -C Release
+
+
+  build-linux-cmake-ninja:
+    name: Linux
+    runs-on: [ubuntu-latest]
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: '3.7'
+    - name: configure
+      run: |
+        env
+        which python
+        mkdir target
+        cd target
+        cmake .. -G Ninja -DCMAKE_INSTALL_PREFIX=installLinux-Github -DPYTHON_VERSION=3.7
+    - name: build
+      run: |
+        cd target
+        cmake --build . -j
+    - name: install
+      run: |
+        cd target
+        cmake --build . --target install
+    - name: test
+      run: |
+        cd target
+        ctest
+
+
 
 
   build-windows-waf:
