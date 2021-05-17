@@ -25,8 +25,13 @@
 #include <cmath>
 #include <algorithm>
 #include <functional>
+#include <memory>
+#include <cstddef>
+
 #include <import/sys.h>
+#include <import/gsl.h>
 #include <mem/ScopedArray.h>
+#include <mem/SharedPtr.h>
 #include <math/linear/MatrixMxN.h>
 
 namespace math
@@ -59,26 +64,33 @@ class Matrix2D
     friend class Vector<_T>;
 
     //!  Matrix dimension in rows
-    size_t mM;
+    size_t mM = 0;
 
     //!  Matrix dimension in cols
-    size_t mN;
+    size_t mN = 0;
 
     //! Length of storage
-    size_t mMN;
+    size_t mMN = 0;
 
     //! storage owned by the object
-    mem::ScopedArray<_T> mStorage;
+    std::unique_ptr<_T[]> mStorage;
 
     //!  pointer to the raw storage
-    _T *mRaw;
+    _T* mRaw = nullptr;
+
+    void reset()
+    {
+        mStorage = mem::make::unique<_T[]>(mMN);
+        mRaw = mStorage.get();
+    }
+    Matrix2D(size_t M, size_t N, std::nullptr_t) :
+        mM(M), mN(N), mMN(M*N)
+    {
+        reset();
+    }
 
 public:
-    //! Default constructor (does nothing)
-    Matrix2D() :
-        mM(0), mN(0), mMN(0), mRaw(nullptr)
-    {
-    }
+    Matrix2D() = default;
 
     /*!
      *  Create a matrix with a constant value for
@@ -92,9 +104,7 @@ public:
      *
      */
     Matrix2D(size_t M, size_t N, _T cv = 0) :
-        mM(M), mN(N), mMN(M*N),
-        mStorage(new _T[mMN]),
-        mRaw(mStorage.get())
+        Matrix2D(M, N, nullptr)
     {
         std::fill_n(mRaw, mMN, cv);
     }
@@ -115,9 +125,7 @@ public:
      *  \param raw A raw pointer to copy internally
      */
     Matrix2D(size_t M, size_t N, const _T* raw) :
-        mM(M), mN(N), mMN(M*N),
-        mStorage(new _T[mMN]),
-        mRaw(mStorage.get())
+        Matrix2D(M, N, nullptr)
     {
         std::copy(raw, raw+mMN, mRaw);
     }
@@ -132,12 +140,13 @@ public:
      *
      */
     Matrix2D(size_t M, size_t N, const std::vector<_T>& raw) :
-        mM(M), mN(N), mMN(M*N),
-        mStorage(new _T[mMN]),
-        mRaw(mStorage.get())
+        Matrix2D(M, N, nullptr)
     {
         // use mMN endpoint, since mMN can be less than raw.size()
-        std::copy(raw.begin(), raw.begin()+mMN, mRaw);
+        const auto begin = raw.begin();
+        auto end = begin;
+        std::advance(end, gsl::narrow<ptrdiff_t>(mMN));
+        std::copy(begin, end, mRaw);
     }
     /*!
      *  Supports explicit assignment from
@@ -150,9 +159,7 @@ public:
      *  \endcode
      */
     Matrix2D(const Matrix2D& mx) :
-        mM(mx.mM), mN(mx.mN), mMN(mx.mMN),
-        mStorage(new _T[mMN]),
-        mRaw(mStorage.get())
+        Matrix2D(mx.mM, mx.mN)
     {
         std::copy(mx.mRaw, mx.mRaw+mMN, mRaw);
     }
@@ -180,11 +187,7 @@ public:
 
     template <size_t _MD, size_t _ND>
     Matrix2D(const MatrixMxN<_MD, _ND>& input) :
-        mM(_MD),
-        mN(_ND),
-        mMN(_MD * _ND),
-        mStorage(new _T[mMN]),
-        mRaw(mStorage.get())
+        Matrix2D(_MD, _ND)
     {
         for (size_t idx = 0, mm = 0; mm < _MD; ++mm)
         {
@@ -212,9 +215,7 @@ public:
             mM  = mx.mM;
             mN  = mx.mN;
             mMN = mx.mMN;
-
-            mStorage.reset(new _T[mMN]),
-            mRaw = mStorage.get();
+            reset();
 
             std::copy(mx.mRaw, mx.mRaw+mMN, mRaw);
         }
@@ -238,14 +239,13 @@ public:
         mM  = 1;
         mN  = 1;
         mMN = 1;
-        mStorage.reset(new _T[1]);
-        mRaw = mStorage.get();
+        reset();
         mRaw[0] = sv;
         return *this;
     }
 
     //! Nothing is allocated by us
-    ~Matrix2D() {}
+    ~Matrix2D() = default;
 
 
     /*!
@@ -1109,8 +1109,7 @@ public:
         ar & mMN;
         if (Archive::is_loading::value)
         {
-            mStorage.reset(new _T[mMN]);
-            mRaw = mStorage.get();
+            reset();
         }
         for (size_t ii = 0; ii < mMN; ++ii)
         {
@@ -1184,14 +1183,15 @@ template<typename _T>
             }
         }
     }
-    for (sys::SSize_T kk = N - 1; kk >= 0; kk--)
+    for (auto kk_ = gsl::narrow<sys::SSize_T>(N) - 1; kk_ >= 0; kk_--)
     {
+        const auto kk = gsl::narrow<size_t>(kk_);
         for (size_t jj = 0; jj < P; jj++)
         {
             x(kk, jj) /= lu(kk, kk);
         }
 
-        for (size_t ii = 0; ii < static_cast<size_t>(kk); ii++)
+        for (size_t ii = 0; ii < kk; ii++)
         {
             // This one could be _Q
             for (size_t jj = 0; jj < P; jj++)
