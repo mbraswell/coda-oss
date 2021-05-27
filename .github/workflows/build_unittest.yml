@@ -63,33 +63,6 @@ jobs:
         cd target
         ctest
 
-
-  build-windows-waf:
-    name: Windows-waf
-    runs-on: [windows-latest]
-
-    steps:
-    - uses: actions/checkout@v2
-    - name: Set up Python
-      uses: actions/setup-python@v2
-      with:
-        python-version: '3.7'
-    - name: configure
-      run: |
-        "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
-        pip install numpy
-        mkdir installWindowsWaf-Github
-        python waf configure --prefix="$PWD/installWindowsWaf-Github"
-    - name: build
-      run: |
-        python waf build
-    - name: install
-      run: |
-        python waf install
-    - name: test
-      run: |
-        python waf install --alltests
-
   build-linux-waf:
     name: Linux-waf
     runs-on: [ubuntu-latest]
