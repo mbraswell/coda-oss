@@ -215,7 +215,7 @@ def configure(conf):
             conf.env['MAKE_XERCES'] = True
             conf.env['MAKE_XML']    = True
             conf.msg('Building local lib', xmlLayer)
-            untarFile(path=conf.path, fname=SOURCE + '.tar')
+            untarFile(path=conf.path, fname=join(conf.path.abspath(), SOURCE + '.tar'))
 
             # make config.h & config.hpp
             xercesNode = conf.path.make_node(SOURCE)

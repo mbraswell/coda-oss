@@ -89,8 +89,8 @@ def configure(conf):
 
             conf.env['MAKE_JPEG'] = True
             conf.msg('Building local lib', 'jpeg (libjpeg)')
-
-            untarFile(path=conf.path, fname=tarfile)
+           
+            untarFile(path=conf.path, fname= join(conf.path.abspath(), tarfile))
 
             # make jconfig.h
             driverNode = conf.path.make_node(sourcepath)

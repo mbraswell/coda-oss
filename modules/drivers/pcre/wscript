@@ -102,8 +102,8 @@ def configure(conf):
 
             conf.env['MAKE_PCRE'] = True
             conf.msg('Building local lib', 'PCRE')
-            
-            untarFile(path=conf.path, fname=TARBALL_FILENAME, mode='r:gz')
+                         
+            untarFile(path=conf.path, fname=join(conf.path.abspath(), TARBALL_FILENAME), mode='r:gz')
 
             # Make config.h
             # TODO: Would rather start with config.h.in and use the

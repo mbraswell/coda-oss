@@ -21,7 +21,7 @@ def options(opt):
 
 def configure(conf):    
     #-- UUID -------------------------------------------------------------------
-    if Options.platform != 'win32' and Options.options.enable_uuid:
+    if sys.platform != 'win32' and Options.options.enable_uuid:
 
         uuidHome = Options.options.uuid_home
         if uuidHome:
@@ -74,7 +74,7 @@ def configure(conf):
             conf.env['MAKE_UUID'] = True
             conf.msg('Building local lib', 'uuid')
            
-            untarFile(path=conf.path, fname='e2fsprogs-1.40-uuid.tar')
+            untarFile(path=conf.path, fname=os.path.join(conf.path.abspath(), 'e2fsprogs-1.40-uuid.tar'))
             
             fname='e2fsprogs-1.40-uuid'
             driverNode = conf.path.make_node(join(fname, 'lib', 'uuid'))

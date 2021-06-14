@@ -66,7 +66,7 @@ def configure(conf):
 
             # untar and setup env
             conf.msg('Building local lib', j2kLayer)
-            untarFile(path=conf.path, fname=SOURCE + '.tar')
+            untarFile(path=conf.path, fname=join(conf.path.abspath(), SOURCE + '.tar'))
 
             # make opj_config.h
             openjpegNode = conf.path.make_node(

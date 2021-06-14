@@ -1,9 +1,9 @@
 NAME            = 'config'
-MAINTAINER      = 'jonathan.means@maxar.com'
 VERSION         = '1.2'
 USELIB          = 'THREAD DL RT SOCKET'
 
 import os
+import ast
 from build import writeConfig
 from waflib import Utils
 
@@ -46,18 +46,6 @@ def configure(conf):
                 return 0;
             }
             '''
-        output = conf.check(fragment=types_str, execute=1, msg='Checking system type sizes', define_ret=True)
-        t = Utils.str_to_dict(output or '')
-        for k, v in t.items():
-            try:
-                v = int(v)
-            except:
-                v = v.strip()
-                if v == 'True':
-                    v = True
-                elif v == 'False':
-                    v = False
-            conf.define(k.upper(), v)
 
         attribute_noinline_str = '''
             int __attribute__((noinline)) fn() { return 0; }
