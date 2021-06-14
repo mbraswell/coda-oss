@@ -1,11 +1,11 @@
-import os
+import os, sys
 from os.path import join, exists
 from waflib import Options, Utils
 from waflib.TaskGen import feature, before, task_gen
 from build import untarFile, writeConfig, listToTuple
 
 def options(opt):
-    if Options.platform != 'win32':
+    if sys.platform != 'win32':
         opt.add_option('--disable-uuid', action='store_false', dest='enable_uuid',
                        help='will not build the uuid library')
         opt.add_option('--enable-uuid', action='store_true',

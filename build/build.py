@@ -726,14 +726,14 @@ def deprecated_callback(option, opt, value, parser):
 
 
 def options(opt):
-    opt.load('compiler_cc')
+    opt.load('compiler_c')
     opt.load('compiler_cxx')
     opt.load('waf_unit_test')
 
     if sys.version_info >= (2,5,0):
       opt.load('msvs')
 
-    if Options.platform == 'win32':
+    if sys.platform == 'win32':
         opt.load('msvc')
         opt.add_option('--with-crt', action='store', choices=['MD', 'MT'],
                        dest='crt', default='MD', help='Specify Windows CRT library - MT or MD (default)')
@@ -817,7 +817,7 @@ def ensureCpp11Support(self):
 
 
 def configureCompilerOptions(self):
-    sys_platform = getPlatform(default=Options.platform)
+    sys_platform = getPlatform(default=sys.platform)
     appleRegex = r'i.86-apple-.*'
     linuxRegex = r'.*-.*-linux-.*|i686-pc-.*|linux'
     solarisRegex = r'sparc-sun.*|i.86-pc-solaris.*|sunos'
@@ -1171,7 +1171,7 @@ def writeConfig(conf, callback, guardTag, infile=None, outfile=None, path=None, 
     if feature is None:
         conf.write_config_header(configfile=path,
                                  guard='_%s_CONFIG_H_'%guardTag.upper().replace('.', '_'),
-                                 top=False, env=None, defines=True,
+                                 top=False, defines=True,
                                  headers=False, remove=True)
     else:
         tuple = listToTuple(conf.env['DEFINES'])
@@ -1212,7 +1212,7 @@ def configure(self):
     if sys.version_info < (2, 7, 0):
         self.fatal('build.py requires at least Python 2.7')
 
-    sys_platform = getPlatform(default=Options.platform)
+    sys_platform = getPlatform(default=sys.platform)
     winRegex = r'win32'
 
     path = Utils.to_list(self.path.abspath())
@@ -1221,70 +1221,9 @@ def configure(self):
 
     self.msg('Platform', sys_platform, color='GREEN')
 
-    # Dirty fix to get around libpath problems..
-    if 'msvc' in self.options.check_c_compiler and re.match(winRegex, sys_platform):
-        # NOTE: Previously there was a workaround here (present until 6f20120)
-        #       where we overrode cmd_and_log and had it error out if one of the
-        #       paths in libpath did not exist (Kyle added this in 8cc3578).
-        #       If you ever have to restore this, there was another spot below
-        #       where we restored to the old cmd_and_log again.
-        #       I assume this was to support more of the weird interactions we
-        #       used to have with the Windows SDK and VS Express, especially
-        #       when someone tried to build from a vanilla command prompt... I
-        #       think this logic forced waf not to pick that configuration.
-        #       The problem is that, with Visual Studio 2015 Express, you end
-        #       up with incomplete stuff in LIB because you have incomplete
-        #       stuff in LIBPATH (and waf-print-msvc.bat mashes those together)
-        #       because vcvarsx86_amd64.bat, when it doesn't have WindowsSdkDir,
-        #       sets LIBPATH to include WindowsLibPath (which is set to an
-        #       incomplete path by vcvarsqueryregistry.bat) and ExtensionSDKDir
-        #       (which is an empty path for me... would potentially be set by
-        #       vcvarsqueryregistry.bat in certain cases).  This is ok - waf
-        #       will find and use VS 2015 Express fine if you just leave it
-        #       alone.  It's possible this is going to break some old versions
-        #       of VS Express and/or Windows SDK, but the upside is that
-        #       starting with VS 2012 Express, it ships with a 64-bit
-        #       cross-compiler so hopefully these have largely faded out.
-        #       I'm wondering if this also explains other weirdness I'd seen
-        #       in the past where waf, with a VS Pro installation, wouldn't pick
-        #       the real x64 target sometimes (we used to have to prefer
-        #       x86_amd64 over x64 in MSVC_TARGETS to work around that).
-
-        # If we're in the Windows SDK or VS command prompt, having these set can mess things up.
-        env_lib = self.environ.get('LIB', None)
-        if 'LIB' in self.environ: del self.environ['LIB']
-        env_cl = os.environ.get('CL', None)
-        if 'CL' in os.environ: del os.environ['CL']
-
-        if Options.options.enable64 or ('64' in platform.machine() and not Options.options.enable32):
-            # x64 is the native 64-bit compiler, so prefer this one.  If we
-            # just have VS Express though, we won't have it, so fall back on
-            # x86_amd64 - this is a 32-bit compiler that cross-compiles to
-            # 64-bit.  VS 2012 Express ships with this one, and earlier VS
-            # Express versions can get this via the Windows SDK.
-            self.env['MSVC_TARGETS'] = ['x64', 'x86_amd64']
-
-            # Look for 32-bit msvc if we don't find 64-bit.
-            if not Options.options.enable64:
-                self.options.check_c_compiler = self.options.check_cxx_compiler = 'msvc'
-                try:
-                    self.load('compiler_c')
-                except self.errors.ConfigurationError:
-                    self.env['MSVC_TARGETS'] = None
-                    self.tool_cache.remove(('msvc',id(self.env),None))
-                    self.tool_cache.remove(('compiler_c',id(self.env),None))
-                    self.msg('Checking for \'msvc\'', 'Warning: cound not find x64 msvc, looking for others', color='RED')
-        else:
-            self.env['MSVC_TARGETS'] = ['x86']
-
     self.load('compiler_c')
     self.load('compiler_cxx')
     self.load('waf_unit_test')
-
-    # Reset LIB and CL
-    if 'msvc' in self.options.check_c_compiler and re.match(winRegex, sys_platform):
-        if env_lib is not None: self.environ['LIB'] = env_lib
-        if env_cl is not None: os.environ['CL'] = env_cl
 
     # NOTE: The order is important here.  We need to set up all
     #       compiler-specific flags (via both the options immediately below
